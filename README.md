@@ -2,5 +2,4 @@
 Simple native javascript with html5 canvas for Flappy Bird game 
 
 ### Online Demo
-https://tudtude.github.io/Flappy-Bird-js/
-
+https://tudtude.github.io/JS-Game-Flappy-Bird/

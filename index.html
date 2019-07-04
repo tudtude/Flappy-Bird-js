@@ -1,0 +1,228 @@
+<html>
+<head>
+    <title> Flappy Bird </title>
+    <style>
+        canvas {
+            height: 70vh;
+        }
+    </style>
+</head>
+
+<body style="text-align: center">
+    <h1> Flappy Bird by JS </h1>
+    <canvas id='display' width="320px" height="480"></canvas>
+</body>
+
+<script>
+let display, gameStart, gameStatus, spriteSheet
+let frameCount = 0
+let score = 0
+let spriteBackground, spriteBird, spriteGround, spritePipeBottom, spritePipeTop
+
+display = document.getElementById('display')
+displayContext = display.getContext('2d')
+
+
+loadImg()
+
+function loadImg(){
+    spriteSheet = new Image()
+    spriteSheet.src = 'sprite.png'
+    spriteSheet.addEventListener('load', function() {
+        spriteBackground = { x : 0, y : 0, w : 276, h: 228 }
+        spriteGround = { x: 276 , y : 0 , w : 224, h: 110 }
+        spriteBird = [
+            { x: 276 , y : 112 , w : 33, h: 28 },
+            { x: 276 , y : 138 , w : 33, h: 28 },
+            { x: 276 , y : 166 , w : 33, h: 28 }
+        ]
+        spritePipeBottom = { x: 500 , y: 0 , w: 54 , h: 400 }
+        spritePipeTop = { x: 554 , y: 0 , w: 54 , h: 400 }
+        init()
+    })
+}
+    
+    function init(){
+        background  = {
+            x: 0,
+            y: display.height - spriteBackground.h,
+            width : 320,
+            height: 480,
+            show : backgroundShow,
+            update : backgroundUpdate
+        }
+        
+        ground = {
+            x: 0,
+            y: display.height - spriteGround.h,
+            show : groundShow,
+            update : groundUpdate
+        }
+        
+        bird = {
+            x: 50,
+            y: 150,
+            animate: 0,
+            gravity: 0.2,
+            velocity: 0,
+            show : birdShow,
+            update: birdUpdate,
+            flap: birdFlap
+        }
+        
+        
+        // y max 320 min 120
+        pipe = {
+            x : 200,
+            y : Math.floor( Math.random() * 200 ) + 120,
+            holeHeight : 80,
+            velocity : 1.5,
+            list : [
+                { x: 300, y: Math.floor( Math.random() * 200 ) + 120 }
+            ],
+            show: pipeShow,
+            update: pipeUpdate
+        }
+        gameLoop()
+    }
+    
+    function gameLoop(){
+        gameStart = requestAnimationFrame( gameLoop )
+        frameCount ++
+        background.show()
+        pipe.show()
+        ground.show()
+        bird.show()
+        scoreShow()
+        bird.update()
+        background.update()
+        pipe.update()
+        ground.update()
+        
+    }
+    
+    function backgroundShow(){
+        displayContext.fillStyle = 'lightblue'
+        displayContext.fillRect( 0, 0, background.width, background.height )
+        drawSprite(spriteBackground, background.x, background.y )
+        drawSprite(spriteBackground, background.x + spriteBackground.w, background.y )
+        drawSprite(spriteBackground, background.x + 2 * spriteBackground.w, background.y )
+    }
+    
+    function backgroundUpdate(){
+        background.x --
+        if( background.x < - spriteBackground.w ){
+            background.x = 0
+        }
+    }
+    
+    function groundShow(){
+        drawSprite( spriteGround, ground.x, ground.y )
+        drawSprite( spriteGround, ground.x + spriteGround.w , ground.y)
+        drawSprite( spriteGround, ground.x + 2 * spriteGround.w, ground.y )
+    }
+    
+    function groundUpdate(){
+        ground.x --
+        if( ground.x < - spriteGround.w ){
+            ground.x = 0
+        }
+    }
+    
+    function birdShow(){
+        let rotate = bird.velocity < 0 ? 5.8 : 0.5
+        displayContext.save()
+        displayContext.translate( bird.x , bird.y  )
+        displayContext.rotate( rotate )
+        drawSprite( spriteBird[bird.animate], 0, 0 )
+        displayContext.restore()
+    }
+    
+    function birdUpdate(){
+        if( frameCount % 5 == 0 ){
+            bird.animate ++
+            bird.animate = bird.animate % 3
+        }
+        bird.velocity += bird.gravity
+        bird.y += bird.velocity
+        
+        if( bird.y + spriteBird[0].h >= ground.y ){
+            bird.y = ground.y - spriteBird[0].h
+            cancelAnimationFrame( gameStart )
+        }
+        
+        if( bird.y <= 10 ){
+            bird.y = 10
+        }
+        let b = bird
+        let px = pipe.list[0].x
+        let pby = pipe.list[0].y
+        let pty =  pipe.list[0].y - pipe.holeHeight - spritePipeTop.h
+        
+        if( isCollide( b.x, b.y, 33, 28, px, pby, spritePipeBottom.w, spritePipeBottom.h )){
+            cancelAnimationFrame( gameStart )
+        }
+        if( isCollide( b.x, b.y, 33, 28, px, pty , spritePipeTop.w, spritePipeTop.h )){
+            cancelAnimationFrame( gameStart )
+        }
+        
+    }
+    
+    function pipeShow(){
+        for( let i = 0; i < pipe.list.length; i ++){
+            drawSprite( spritePipeBottom, pipe.list[i].x, pipe.list[i].y )
+            drawSprite( spritePipeTop, pipe.list[i].x, pipe.list[i].y - pipe.holeHeight - spritePipeTop.h )
+        }
+    }
+    
+    function pipeUpdate(){
+        for( let i = 0; i < pipe.list.length; i ++ ){
+            pipe.list[i].x --
+            if( pipe.list[i].x < - spritePipeBottom.w ){
+                pipe.list.shift()
+                score ++
+            }
+            
+        }
+        if( frameCount % 190 == 0 ){
+            pipe.list.push({
+                x : display.width,
+                y : Math.floor( Math.random() * 200 ) + 120
+            })
+        }
+        
+    }
+    
+    function birdFlap(){
+        bird.velocity = -3.5
+    }
+    
+    function scoreShow(){
+        displayContext.fillStyle = 'gray'
+        displayContext.font = '15px Verdana'
+        displayContext.fillText( 'Score : ' + score, 10, display.height - 10 )
+    }
+    
+    
+    // common function
+    function drawSprite( sprite, x, y ){
+        displayContext.drawImage( spriteSheet, sprite.x, sprite.y, sprite.w , sprite.h, x, y, sprite.w, sprite.h)
+    }
+    
+    function isCollide( ax, ay, aw, ah, bx, by, bw, bh ){
+        if( ax + aw > bx && ax < bx + bw && ay + ah > by && ay < by + bh ){
+            return true
+        } else {
+            return false
+        }
+    }
+    
+    
+    document.addEventListener('keydown', function( event ){
+        if( event.keyCode == 32 ){
+            bird.flap()
+        }
+            
+    })
+
+</script>
